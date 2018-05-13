@@ -1,7 +1,10 @@
 package testxposed.zeewinpeng.com.testxposed;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.IBinder;
 
 import java.util.Set;
 
@@ -13,6 +16,7 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
 
 public class TestXposed implements IXposedHookLoadPackage {
+    String mPackageName = "test";
     public void handleLoadPackage(final LoadPackageParam lpparam) throws Throwable {
         //XposedBridge.log("Loaded app1 : " + lpparam.packageName);
         String pkgName = lpparam.packageName;
@@ -29,6 +33,7 @@ public class TestXposed implements IXposedHookLoadPackage {
         }
 
         XposedBridge.log("hooked app: " + lpparam.packageName);
+        mPackageName = lpparam.packageName;
 
         /*
         findAndHookMethod("tcs.aos", lpparam.classLoader, "dg", java.lang.String.class, new XC_MethodHook() {
@@ -127,7 +132,7 @@ public class TestXposed implements IXposedHookLoadPackage {
                 new XC_MethodHook(){
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[B]startActivityForResult " + param.args[0].toString());
+                        XposedBridge.log("[B]<" + mPackageName + ">startActivityForResult");
                         if (param.args[0] instanceof Intent){
                             Intent intent = (Intent)param.args[0];
                             printIntent(intent);
@@ -136,7 +141,7 @@ public class TestXposed implements IXposedHookLoadPackage {
                     }
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[A]startActivityForResult");
+                        XposedBridge.log("[A]<" + mPackageName + ">startActivityForResult");
                         //printStack();
                     }
         });
@@ -151,15 +156,35 @@ public class TestXposed implements IXposedHookLoadPackage {
                 new XC_MethodHook(){
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[B]setDataAndType " + param.args[0].toString()  + "|" + param.args[1].toString());
+                        XposedBridge.log("[B]<" + mPackageName + ">setDataAndType " + param.args[0]  + "|" + param.args[1]);
                         printStack();
                     }
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[A]setDataAndType");
+                        XposedBridge.log("[A]<" + mPackageName + ">setDataAndType");
                         //printStack();
                     }
         });
+
+        findAndHookMethod(
+                "android.content.Intent",
+                lpparam.classLoader,
+                "putExtra",
+                java.lang.String.class,
+                android.os.Parcelable.class,
+                new XC_MethodHook(){
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        XposedBridge.log("[B]<" + mPackageName + ">Intent::putExtra " + param.args[0]  + "|" + param.args[1]);
+                        printStack();
+                    }
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        XposedBridge.log("[A]<" + mPackageName + ">Intent::putExtra");
+                        //printStack();
+                    }
+                }
+        );
 
         // ContextImpl.java
 
@@ -217,24 +242,34 @@ public class TestXposed implements IXposedHookLoadPackage {
                 new XC_MethodHook(){
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[B]Instrumentation::execStartActivity"
-                                + "|" + param.args[0].toString()
-                                + "|" + param.args[1].toString()
-                                + "|" + param.args[2].toString()
-                                + "|" + param.args[3].toString()
-                                + "|" + param.args[4].toString()
-                                + "|" + param.args[5].toString()
-                        );
+                        XposedBridge.log("[B]<" + mPackageName + ">Instrumentation::execStartActivity");
 
-                        if (param.args[4] instanceof Intent){
-                            Intent intent = (Intent)param.args[0];
-                            printIntent(intent);
+                        Context who = (Context)param.args[0];
+                        IBinder contextThread = (IBinder)param.args[1];
+                        IBinder token = (IBinder)param.args[2];
+                        Activity target = (Activity)param.args[3];
+                        Intent intent = (Intent)param.args[4];
+                        int requestCode = (int)param.args[5];
+                        Bundle options = (Bundle)param.args[6];
+                        XposedBridge.log("who:" + (who==null ? "null":who));
+                        XposedBridge.log("contextThread:" + (contextThread==null ? "null":contextThread));
+                        XposedBridge.log("token:" + (token==null ? "null":token));
+                        XposedBridge.log("target:" + (target==null ? "null":target));
+                        XposedBridge.log("intent:" + (intent==null ? "null":intent));
+                        XposedBridge.log("requestCode:" + requestCode);
+                        XposedBridge.log("options:" + (options==null ? "null":options));
+                        printIntent(intent);
+                        if(target !=null){
+                            ClassLoader cl = target.getClassLoader();
+                            XposedBridge.log("[" + mPackageName + "]ClassLoader:" + cl);
                         }
                         printStack();
+
+
                     }
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[A]Instrumentation::execStartActivity");
+                        XposedBridge.log("[A]<" + mPackageName + ">Instrumentation::execStartActivity");
                         //printStack();
                     }
                  }
@@ -280,23 +315,37 @@ public class TestXposed implements IXposedHookLoadPackage {
                 new XC_MethodHook(){
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[B]ActivityManagerProxy::startActivity"
-                                + "|" + param.args[0].toString()
-                                + "|" + param.args[1].toString()
-                                + "|" + param.args[2].toString()
-                                + "|" + param.args[3].toString()
-                                + "|" + param.args[4].toString()
-                                + "|" + param.args[5].toString()
-                        );
-                        if (param.args[0] instanceof Intent){
-                            Intent intent = (Intent)param.args[2];
-                            printIntent(intent);
-                        }
+                        XposedBridge.log("[B]<" + mPackageName + ">ActivityManagerProxy::startActivity");
+
+                        XposedBridge.log("<<<<<<<<<<<<<<<<<<<<");
+                        XposedBridge.log("caller:" + (param.args[0] == null ? "null":param.args[0]));
+                        String callingPackage = (String)param.args[1];
+                        Intent intent = (Intent)param.args[2];
+                        String resolveType = (String)param.args[3];
+                        String resultWho = (String)param.args[5];
+                        XposedBridge.log("callingPackage:" + callingPackage);
+                        XposedBridge.log("intent:" + intent);
+                        XposedBridge.log("resolveType:" + resolveType);
+                        XposedBridge.log("resultWho:" + resultWho);
+                        printIntent(intent);
+                        XposedBridge.log(">>>>>>>>>>>>>>>>>>>>");
                         printStack();
                     }
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        XposedBridge.log("[A]ActivityManagerProxy::startActivity");
+                        XposedBridge.log("[A]<" + mPackageName + ">ActivityManagerProxy::startActivity");
+                        XposedBridge.log("<<<<<<<<<<<<<<<<<<<<");
+                        XposedBridge.log("caller:" + (param.args[0] == null ? "null":param.args[0]));
+                        String callingPackage = (String)param.args[1];
+                        Intent intent = (Intent)param.args[2];
+                        String resolveType = (String)param.args[3];
+                        String resultWho = (String)param.args[5];
+                        XposedBridge.log("callingPackage:" + callingPackage);
+                        XposedBridge.log("intent:" + intent);
+                        XposedBridge.log("resolveType:" + resolveType);
+                        XposedBridge.log("resultWho:" + resultWho);
+                        printIntent(intent);
+                        XposedBridge.log(">>>>>>>>>>>>>>>>>>>>");
                         //printStack();
                     }
                 }
@@ -320,13 +369,32 @@ public class TestXposed implements IXposedHookLoadPackage {
 
     private void printIntent(Intent intent){
         XposedBridge.log("===Print Intent START");
-        XposedBridge.log(intent.toString());
-        Bundle extras = intent.getExtras();
-        Set<String> keys = extras.keySet();
-        for (String key:keys){
-            Object obj = extras.get(key);
-            XposedBridge.log("key:" + key + "|value:" + obj.toString());
+        if (intent != null){
+            XposedBridge.log(intent.toString());
+
+            Bundle extras = intent.getExtras();
+            if(extras != null){
+                Set<String> keys = extras.keySet();
+                if (keys != null){
+                    for (String key:keys){
+                        Object obj = extras.get(key);
+                        if (obj != null){
+                            if (obj.getClass().equals(java.lang.String.class)){
+                                XposedBridge.log("key:" + key + "|value:" + obj);
+                            }else{
+                                XposedBridge.log("key:" + key + "|value:" + obj.toString());
+                            }
+                        }
+
+                    }
+                }
+            }
+
+
+        }else{
+            XposedBridge.log("intent is null");
         }
+
 
         XposedBridge.log("===Print Intent END.");
     }
