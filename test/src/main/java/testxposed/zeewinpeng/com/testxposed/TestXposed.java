@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -31,9 +33,72 @@ public class TestXposed implements IXposedHookLoadPackage {
             //XposedBridge.log("Loaded app1 : " + lpparam.packageName);
             return;
         }
-
+        //(java.util.List<java.io.File>).class;
         XposedBridge.log("hooked app: " + lpparam.packageName);
         mPackageName = lpparam.packageName;
+        if (mPackageName.startsWith("com.tencent.gamestick")){
+            findAndHookMethod(
+                    "com.tencent.nnw.loader.app.b.c",
+                    lpparam.classLoader,
+                    "b",
+                    java.lang.ClassLoader.class,
+                    java.util.List.class,
+                    java.io.File.class,
+                    new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    XposedBridge.log("[B]app.b.c.b");
+                    printStack();
+                }
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    XposedBridge.log("[B]app.b.c.b");
+                    //printStack();
+                }
+            });
+
+            findAndHookMethod(
+                    "com.tencent.nnw.loader.app.b.c",
+                    lpparam.classLoader,
+                    "c",
+                    Object.class,
+                    java.util.ArrayList.class,
+                    java.io.File.class,
+                    java.util.ArrayList.class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            XposedBridge.log("[B]app.b.c.c");
+                            printStack();
+                        }
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            XposedBridge.log("[B]app.b.c.c");
+                            //printStack();
+                        }
+                    });
+
+            findAndHookMethod(
+                    "com.tencent.nnw.loader.app.b",
+                    lpparam.classLoader,
+                    "c",
+                    Object.class,
+                    java.lang.String.class,
+                    Object[].class,
+
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            XposedBridge.log("[B]app.b.c");
+                            printStack();
+                        }
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            XposedBridge.log("[B]app.b.c");
+                            //printStack();
+                        }
+                    });
+        }
 
         /*
         findAndHookMethod("tcs.aos", lpparam.classLoader, "dg", java.lang.String.class, new XC_MethodHook() {
@@ -123,6 +188,9 @@ public class TestXposed implements IXposedHookLoadPackage {
             }
         });
         */
+
+        // android.app.Activity::startActivityForResult
+        /*
         findAndHookMethod(
                 "android.app.Activity",
                 lpparam.classLoader,
@@ -145,8 +213,10 @@ public class TestXposed implements IXposedHookLoadPackage {
                         //printStack();
                     }
         });
+        */
 
-
+        // android.content.Intent::setDataAndType
+        /*
         findAndHookMethod(
                 "android.content.Intent",
                 lpparam.classLoader,
@@ -165,7 +235,10 @@ public class TestXposed implements IXposedHookLoadPackage {
                         //printStack();
                     }
         });
+        */
 
+        // android.content.Intent::putExtra
+        /*
         findAndHookMethod(
                 "android.content.Intent",
                 lpparam.classLoader,
@@ -185,6 +258,180 @@ public class TestXposed implements IXposedHookLoadPackage {
                     }
                 }
         );
+        */
+
+        // android.content.Intent::setExtrasClassLoader
+        /*
+        findAndHookMethod(
+                "android.content.Intent",
+                lpparam.classLoader,
+                "setExtrasClassLoader",
+                java.lang.ClassLoader.class,
+                new XC_MethodHook(){
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        Object obj = param.args[0];
+                        if (obj != null){
+                            XposedBridge.log("[B]<" + mPackageName + ">Intent::setExtrasClassLoader");
+                            XposedBridge.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+                            XposedBridge.log("ClassLoader:" + param.args[0]);
+                            XposedBridge.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                            printStack();
+                        }
+                    }
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        Object obj = param.args[0];
+                        if (obj != null) {
+                            XposedBridge.log("[A]<" + mPackageName + ">Intent::setExtrasClassLoader");
+                            //printStack();
+                        }
+                    }
+                }
+        );
+        */
+
+        // ActivityThread::sendMessage
+        /*
+        findAndHookMethod(
+                "android.app.ActivityThread",
+                lpparam.classLoader,
+                "sendMessage",
+                int.class,
+                java.lang.Object.class,
+                new XC_MethodHook(){
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        int what = (int)param.args[0];
+                        if (what == 100){
+                            XposedBridge.log("[B]<" + mPackageName + ">ActivityThread::sendMessage");
+                            Object obj = param.args[1];
+                            XposedBridge.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+                            XposedBridge.log("ActivityClientRecord:" + obj);
+                            XposedBridge.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                            printStack();
+                        }
+
+                    }
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        int what = (int)param.args[0];
+                        if (what == 100) {
+                            XposedBridge.log("[A]<" + mPackageName + ">ActivityThread::sendMessage");
+                        }
+                        //printStack();
+                    }
+                }
+        );
+        */
+
+        // ActivityThread::handleLaunchActivity
+        /*
+        findAndHookMethod(
+                "android.app.ActivityThread",
+                lpparam.classLoader,
+                "handleLaunchActivity",
+                "android.app.ActivityThread.ActivityClientRecord",
+                android.content.Intent.class,
+                java.lang.String.class,
+                new XC_MethodHook(){
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        Object obj = param.args[0];
+
+                        if (obj != null){
+                            XposedBridge.log("[B]<" + mPackageName + ">ActivityThread::handleLaunchActivity");
+                            XposedBridge.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+                            XposedBridge.log("ActivityClientRecord:" + obj);
+                            XposedBridge.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                            printStack();
+                        }
+
+                    }
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        Object obj = param.args[0];
+
+                        if (obj != null){
+                            XposedBridge.log("[A]<" + mPackageName + ">ActivityThread::handleLaunchActivity");
+                        }
+                        //printStack();
+                    }
+                }
+        );
+        */
+
+        // ActivityThread::handleLaunchActivity
+        /*
+        findAndHookMethod(
+                "android.app.ActivityThread",
+                lpparam.classLoader,
+                "performLaunchActivity",
+                "android.app.ActivityThread.ActivityClientRecord",
+                android.content.Intent.class,
+                new XC_MethodHook(){
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        Object obj = param.args[0];
+
+                        if (obj != null){
+                            XposedBridge.log("[B]<" + mPackageName + ">ActivityThread::performLaunchActivity");
+                            XposedBridge.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+                            XposedBridge.log("ActivityClientRecord:" + obj);
+                            XposedBridge.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                            printStack();
+                        }
+
+                    }
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        Object obj = param.args[0];
+
+                        if (obj != null){
+                            XposedBridge.log("[A]<" + mPackageName + ">ActivityThread::performLaunchActivity");
+                        }
+                        //printStack();
+                    }
+                }
+        );
+        */
+
+        // ActivityThread.H handleMessage
+        /*
+        findAndHookMethod(
+                "android.app.ActivityThread.H",
+                lpparam.classLoader,
+                "handleMessage",
+                android.os.Message.class,
+                new XC_MethodHook(){
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+
+                        android.os.Message msg = (android.os.Message)param.args[0];
+
+                        if (msg !=null && msg.what == 100){
+                            XposedBridge.log("[B]<" + mPackageName + ">ActivityThread.H::handleMessage");
+                            XposedBridge.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+                            XposedBridge.log("ActivityClientRecord:" + msg.obj);
+                            XposedBridge.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                            printStack();
+                        }
+
+                    }
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        android.os.Message msg = (android.os.Message)param.args[0];
+
+                        if (msg != null && msg.what == 100) {
+                            XposedBridge.log("[A]<" + mPackageName + ">ActivityThread.H::handleMessage");
+                            //printStack();
+                        }
+                    }
+                }
+        );
+        */
+
+
 
         // ContextImpl.java
 
@@ -229,6 +476,8 @@ public class TestXposed implements IXposedHookLoadPackage {
         )
         */
 
+        // android.app.Intrumentation::execStartActivity
+        /*
         findAndHookMethod("android.app.Instrumentation",
                 lpparam.classLoader,
                 "execStartActivity",
@@ -274,6 +523,9 @@ public class TestXposed implements IXposedHookLoadPackage {
                     }
                  }
         );
+        */
+
+
 
 
         // android.app.ActivityManagerNative
@@ -298,6 +550,7 @@ public class TestXposed implements IXposedHookLoadPackage {
 
         //ActivityManagerService
         // android.app.IActivityManager$Stub$Proxy
+        /*
         findAndHookMethod("android.app.IActivityManager$Stub$Proxy",
                 lpparam.classLoader,
                 "startActivity",
@@ -330,10 +583,13 @@ public class TestXposed implements IXposedHookLoadPackage {
                         printIntent(intent);
                         XposedBridge.log(">>>>>>>>>>>>>>>>>>>>");
                         printStack();
+
+                        intent.setExtrasClassLoader(null);
                     }
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         XposedBridge.log("[A]<" + mPackageName + ">ActivityManagerProxy::startActivity");
+
                         XposedBridge.log("<<<<<<<<<<<<<<<<<<<<");
                         XposedBridge.log("caller:" + (param.args[0] == null ? "null":param.args[0]));
                         String callingPackage = (String)param.args[1];
@@ -346,12 +602,50 @@ public class TestXposed implements IXposedHookLoadPackage {
                         XposedBridge.log("resultWho:" + resultWho);
                         printIntent(intent);
                         XposedBridge.log(">>>>>>>>>>>>>>>>>>>>");
+
+                        //printStack();
+
+                    }
+                }
+        );
+        */
+
+        // Instrumentation::newActivity
+        findAndHookMethod("android.app.Instrumentation",
+                lpparam.classLoader,
+                "newActivity",
+                java.lang.ClassLoader.class,
+                java.lang.String.class,
+                android.content.Intent.class,
+
+                new XC_MethodHook(){
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        XposedBridge.log("[B]<" + mPackageName + ">Instrumentation::newActivity");
+
+                        ClassLoader cl = (ClassLoader)param.args[0];
+                        String className = (String)param.args[1];
+                        Intent intent = (Intent)param.args[2];
+                        XposedBridge.log("ClassLoader:" + cl);
+                        XposedBridge.log("className:" + className);
+                        XposedBridge.log("intent:" + (intent==null ? "null":intent));
+
+                        printIntent(intent);
+
+                        printStack();
+
+
+                    }
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        XposedBridge.log("[A]<" + mPackageName + ">Instrumentation::newActivity");
                         //printStack();
                     }
                 }
         );
 
     }
+
 
     private void printStack() {
         XposedBridge.log("===Printing stack trace:");
